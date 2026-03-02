@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --secondary: #ec4899;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e1b4b;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #cbd5e1;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 2rem;
+        }
+
+        h1, h2, h3 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Setup Screen */
+        #setup-screen {
+            max-width: 400px;
+            margin: 10vh auto;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        /* Dashboard */
+        #dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+            color: white;
+        }
+
+        .card-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .food-list {
+            margin-top: 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .food-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .food-item-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .food-name {
+            font-weight: 500;
+        }
+
+        .food-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .food-cals {
+            font-weight: 600;
+            color: #f472b6;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 992px) {
+            .charts-section {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .flex-row {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .flex-row > * {
+            flex: 1;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Setup Screen -->
+        <div id="setup-screen" class="glass-panel">
+            <h1>Welcome</h1>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Let's set up your fitness tracker.</p>
+            <form id="setup-form">
+                <div class="input-group">
+                    <label for="user-name">Your Name</label>
+                    <input type="text" id="user-name" required placeholder="e.g. Alex">
+                </div>
+                <div class="input-group">
+                    <label for="start-weight">Starting Weight (kg)</label>
+                    <input type="number" id="start-weight" step="0.1" required placeholder="e.g. 75.5">
+                </div>
+                <button type="submit">Get Started</button>
+            </form>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden">
+            <header>
+                <div>
+                    <h1 id="greeting">Hello, User!</h1>
+                    <p style="color: var(--text-muted)" id="current-date-display"></p>
+                </div>
+                <button id="btn-reset" class="btn-danger" style="width: auto;">Reset All Data</button>
+            </header>
+
+            <div class="summary-cards">
+                <div class="glass-panel">
+                    <div class="card-label">Current Weight</div>
+                    <div class="card-value"><span id="val-current-weight">--</span> kg</div>
+                </div>
+                <div class="glass-panel">
+                    <div class="card-label">Weight Delta</div>
+                    <div class="card-value" id="val-weight-delta">-- kg</div>
+                </div>
+                <div class="glass-panel">
+                    <div class="card-label">Calories Today</div>
+                    <div class="card-value"><span id="val-calories-today">0</span> kcal</div>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <!-- Log Weight -->
+                <div class="glass-panel">
+                    <h2>Log Weight</h2>
+                    <form id="weight-form">
+                        <div class="input-group">
+                            <label for="weight-date">Date</label>
+                            <input type="date" id="weight-date" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="weight-input">Weight (kg)</label>
+                            <input type="number" id="weight-input" step="0.1" required placeholder="e.g. 74.2">
+                        </div>
+                        <button type="submit">Save Weight</button>
+                    </form>
+                </div>
+
+                <!-- Food Diary -->
+                <div class="glass-panel">
+                    <h2>Food Diary (Today)</h2>
+                    <form id="food-form">
+                        <div class="input-group">
+                            <label for="food-name">Food Item</label>
+                            <input type="text" id="food-name" required placeholder="e.g. Oatmeal">
+                        </div>
+                        <div class="flex-row">
+                            <div class="input-group">
+                                <label for="food-qty">Qty (g/ml)</label>
+                                <input type="number" id="food-qty" required placeholder="100">
+                            </div>
+                            <div class="input-group">
+                                <label for="food-cals">Calories</label>
+                                <input type="number" id="food-cals" required placeholder="350">
+                            </div>
+                        </div>
+                        <button type="submit">Add Food</button>
+                    </form>
+                    
+                    <div class="food-list" id="food-list">
+                        <!-- Food items will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-section">
+                <div class="glass-panel">
+                    <h2>Weight Progression</h2>
+                    <div class="chart-container">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel">
+                    <h2>Caloric Intake</h2>
+                    <div class="chart-container">
+                        <canvas id="caloriesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            user: null,
+            startWeight: null,
+            weightLogs: {}, // { 'YYYY-MM-DD': weight }
+            foodLogs: {}    // { 'YYYY-MM-DD': [{ name, qty, cals }] }
+        };
+
+        let weightChartInstance = null;
+        let caloriesChartInstance = null;
+
+        // Chart.js Defaults for Dark Theme
+        Chart.defaults.color = '#cbd5e1';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.font.family = "'Poppins', sans-serif";
+
+        // Initialization
+        function init() {
+            const savedState = localStorage.getItem('fitnessState');
+            if (savedState) {
+                state = JSON.parse(savedState);
+                showDashboard();
+            } else {
+                document.getElementById('setup-screen').classList.remove('hidden');
+            }
+            
+            // Set today's date in weight picker
+            document.getElementById('weight-date').valueAsDate = new Date();
+            
+            // Display current date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date-display').textContent = new Date().toLocaleDateString(undefined, options);
+        }
+
+        function saveState() {
+            localStorage.setItem('fitnessState', JSON.stringify(state));
+            updateDashboard();
+        }
+
+        function getTodayStr() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+        }
+
+        // UI Updates
+        function showDashboard() {
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('greeting').textContent = `Hello, ${state.user}!`;
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const today = getTodayStr();
+            
+            // Calculate current weight
+            const dates = Object.keys(state.weightLogs).sort();
+            const currentWeight = dates.length > 0 ? state.weightLogs[dates[dates.length - 1]] : state.startWeight;
+            
+            document.getElementById('val-current-weight').textContent = currentWeight.toFixed(1);
+            
+            // Calculate delta
+            const delta = currentWeight - state.startWeight;
+            const deltaEl = document.getElementById('val-weight-delta');
+            deltaEl.textContent = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} kg`;
+            deltaEl.style.color = delta > 0 ? '#ef4444' : (delta < 0 ? '#10b981' : 'white');
+
+            // Calculate today's calories
+            const todaysFood = state.foodLogs[today] || [];
+            const totalCals = todaysFood.reduce((sum, item) => sum + Number(item.cals), 0);
+            document.getElementById('val-calories-today').textContent = totalCals;
+
+            renderFoodList(todaysFood);
+            updateCharts();
+        }
+
+        function renderFoodList(foods) {
+            const list = document.getElementById('food-list');
+            list.innerHTML = '';
+            
+            if (foods.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 1rem;">No food logged today.</p>';
+                return;
+            }
+
+            foods.forEach((food, index) => {
+                const item = document.createElement('div');
+                item.className = 'food-item';
+                item.innerHTML = `
+                    <div class="food-item-details">
+                        <span class="food-name">${food.name}</span>
+                        <span class="food-meta">${food.qty} g/ml</span>
+                    </div>
+                    <div class="food-cals">${food.cals} kcal</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateCharts() {
+            // Prepare Data
+            const weightDates = Object.keys(state.weightLogs).sort();
+            const weightData = weightDates.map(d => state.weightLogs[d]);
+            
+            // If no logs, show start weight
+            if (weightDates.length === 0) {
+                weightDates.push(getTodayStr());
+                weightData.push(state.startWeight);
+            }
+
+            const foodDates = Object.keys(state.foodLogs).sort();
+            const calData = foodDates.map(d => {
+                return state.foodLogs[d].reduce((sum, item) => sum + Number(item.cals), 0);
+            });
+
+            // Weight Chart
+            const ctxWeight = document.getElementById('weightChart').getContext('2d');
+            if (weightChartInstance) weightChartInstance.destroy();
+            
+            let gradientWeight = ctxWeight.createLinearGradient(0, 0, 0, 300);
+            gradientWeight.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+            gradientWeight.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+
+            weightChartInstance = new Chart(ctxWeight, {
+                type: 'line',
+                data: {
+                    labels: weightDates,
+                    datasets: [{
+                        label: 'Weight (kg)',
+                        data: weightData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: gradientWeight,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ec4899',
+                        pointBorderColor: '#fff',
+                        pointRadius: 5,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            suggestedMin: Math.min(...weightData) - 2,
+                            suggestedMax: Math.max(...weightData) + 2
+                        }
+                    }
+                }
+            });
+
+            // Calories Chart
+            const ctxCals = document.getElementById('caloriesChart').getContext('2d');
+            if (caloriesChartInstance) caloriesChartInstance.destroy();
+
+            caloriesChartInstance = new Chart(ctxCals, {
+                type: 'bar',
+                data: {
+                    labels: foodDates.length > 0 ? foodDates : [getTodayStr()],
+                    datasets: [{
+                        label: 'Calories',
+                        data: calData.length > 0 ? calData : [0],
+                        backgroundColor: '#ec4899',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Event Listeners
+        document.getElementById('setup-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            state.user = document.getElementById('user-name').value;
+            state.startWeight = parseFloat(document.getElementById('start-weight').value);
+            state.weightLogs[getTodayStr()] = state.startWeight; // Initial log
+            saveState();
+            showDashboard();
+        });
+
+        document.getElementById('weight-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('weight-date').value;
+            const weight = parseFloat(document.getElementById('weight-input').value);
+            state.weightLogs[date] = weight;
+            saveState();
+            document.getElementById('weight-input').value = '';
+        });
+
+        document.getElementById('food-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const today = getTodayStr();
+            const name = document.getElementById('food-name').value;
+            const qty = document.getElementById('food-qty').value;
+            const cals = document.getElementById('food-cals').value;
+
+            if (!state.foodLogs[today]) state.foodLogs[today] = [];
+            state.foodLogs[today].push({ name, qty, cals });
+            
+            saveState();
+            
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-qty').value = '';
+            document.getElementById('food-cals').value = '';
+            document.getElementById('food-name').focus();
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if (confirm('Are you sure you want to delete all data? This cannot be undone.')) {
+                localStorage.removeItem('fitnessState');
+                location.reload();
+            }
+        });
+
+        // Start App
+        init();
+    </script>
+</body>
+</html>
